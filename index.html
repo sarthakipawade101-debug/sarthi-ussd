@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SARTHI — USSD Emulator</title>
+<style>
+  :root{
+    --bg: #10241c;
+    --panel: #172e24;
+    --phone-body: #2a2b28;
+    --phone-edge: #3d3e39;
+    --screen-bg: #0b1a12;
+    --screen-fg: #8fd9a8;
+    --screen-fg-dim: #4f8f66;
+    --amber: #d9a441;
+    --amber-dim: #7a5e28;
+    --key-bg: #35362f;
+    --key-bg-active: #46473d;
+    --text-main: #eae6da;
+    --text-sub: #a9a595;
+    font-family: "Work Sans", system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 20% -10%, #1c3a2c 0%, transparent 55%),
+      var(--bg);
+    color:var(--text-main);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:32px 16px 60px;
+  }
+  .brand{
+    text-align:center;
+    margin-bottom:28px;
+  }
+  .brand h1{
+    font-size:15px;
+    letter-spacing:0.14em;
+    margin:0 0 4px;
+    color:var(--amber);
+    font-weight:600;
+  }
+  .brand p{
+    margin:0;
+    color:var(--text-sub);
+    font-size:13px;
+    max-width:280px;
+  }
+  .phone{
+    width:300px;
+    background:linear-gradient(180deg,var(--phone-body),#222320);
+    border-radius:34px;
+    padding:18px 16px 22px;
+    border:1px solid var(--phone-edge);
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .earpiece{
+    width:50px;height:5px;background:#111;border-radius:3px;
+    margin:0 auto 14px;
+  }
+  .screen{
+    background:var(--screen-bg);
+    border-radius:6px;
+    padding:16px 14px;
+    min-height:230px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    box-shadow: inset 0 0 12px rgba(0,0,0,0.6);
+    border:1px solid #06110b;
+  }
+  .screen-text{
+    font-family:"IBM Plex Mono","Courier New",monospace;
+    color:var(--screen-fg);
+    font-size:13px;
+    line-height:1.6;
+    white-space:pre-wrap;
+    text-shadow: 0 0 6px rgba(143,217,168,0.25);
+  }
+  .screen-status{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:10px;
+    color:var(--screen-fg-dim);
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:8px;
+    letter-spacing:0.06em;
+  }
+  .input-row{
+    margin-top:14px;
+    display:flex;
+    align-items:center;
+    background:#081911;
+    border:1px solid #0e2818;
+    border-radius:4px;
+    padding:6px 8px;
+  }
+  .input-row input{
+    flex:1;
+    background:transparent;
+    border:none;
+    outline:none;
+    color:var(--screen-fg);
+    font-family:"IBM Plex Mono",monospace;
+    font-size:14px;
+    letter-spacing:0.05em;
+  }
+  .input-row input::placeholder{color:var(--screen-fg-dim);}
+  .cursor{
+    width:7px;height:14px;background:var(--screen-fg);
+    animation: blink 1s steps(1) infinite;
+    margin-left:2px;
+  }
+  @keyframes blink{50%{opacity:0;}}
+  .keypad{
+    margin-top:18px;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:9px;
+  }
+  .key{
+    background:var(--key-bg);
+    border:1px solid #45463d;
+    border-radius:8px;
+    padding:11px 0;
+    text-align:center;
+    color:var(--text-main);
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+    user-select:none;
+    transition:background 0.08s ease, transform 0.08s ease;
+  }
+  .key:active{background:var(--key-bg-active); transform:scale(0.96);}
+  .key .sub{
+    display:block;
+    font-size:8px;
+    font-weight:400;
+    color:var(--text-sub);
+    letter-spacing:0.04em;
+    margin-top:1px;
+  }
+  .action-row{
+    margin-top:12px;
+    display:flex;
+    gap:9px;
+  }
+  .action{
+    flex:1;
+    text-align:center;
+    padding:11px 0;
+    border-radius:8px;
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:0.03em;
+    cursor:pointer;
+    border:1px solid transparent;
+  }
+  .send{background:var(--amber); color:#241a05;}
+  .send:active{background:#c4933a;}
+  .end{background:transparent; border-color:#5c3a3a; color:#c98f8f;}
+  .end:active{background:#2a1414;}
+  .footnote{
+    margin-top:22px;
+    max-width:300px;
+    text-align:center;
+    color:var(--text-sub);
+    font-size:11.5px;
+    line-height:1.6;
+  }
+  .footnote code{
+    background:var(--panel);
+    padding:1px 5px;
+    border-radius:4px;
+    color:var(--amber);
+  }
+</style>
+</head>
+<body>
+
+  <div class="brand">
+    <h1>SARTHI USSD SIMULATOR</h1>
+    <p>North-East India logistics access, no smartphone or data connection required.</p>
+  </div>
+
+  <div class="phone">
+    <div class="earpiece"></div>
+    <div class="screen">
+      <div>
+        <div class="screen-status">
+          <span id="carrier">SIGNAL •••</span>
+          <span id="sessionLabel">SESSION IDLE</span>
+        </div>
+        <div class="screen-text" id="screenText">Dial *123# to start a SARTHI session.</div>
+      </div>
+      <div class="input-row">
+        <input id="userInput" type="text" placeholder="*123#" inputmode="text" autocomplete="off" />
+        <div class="cursor"></div>
+      </div>
+    </div>
+
+    <div class="keypad" id="keypad"></div>
+
+    <div class="action-row">
+      <div class="action send" id="sendBtn">SEND</div>
+      <div class="action end" id="endBtn">END</div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    This version runs entirely in your browser — no internet, wifi, or cellular signal needed. Ideal for a demo with unreliable venue connectivity. The backend logic still mirrors the real USSD protocol, so it drops into Route Mobile, Airtel IQ, or any aggregator's webhook unchanged once a shortcode is authorized.
+  </div>
+
+<script>
+(function(){
+  const screenText = document.getElementById('screenText');
+  const sessionLabel = document.getElementById('sessionLabel');
+  const userInput = document.getElementById('userInput');
+  const keypad = document.getElementById('keypad');
+
+  let sessionActive = false;
+  let sessionId = null;
+  let inputHistory = []; // mirrors the '*'-joined "text" param real gateways pass
+
+  // Mock data — runs entirely inside the browser, no server or internet needed.
+  const SHIPMENTS = {
+    "SR1042": "In transit — left Dimapur hub, ETA Guwahati 6:40 PM",
+    "SR2077": "Delayed — road block near Kohima bypass, revised ETA tomorrow AM",
+    "SR3310": "Delivered — Imphal warehouse, 11:05 AM"
+  };
+  const HUBS = ["Guwahati Central Hub", "Dimapur Transit Point", "Shillong Collection Center", "Agartala Distribution Yard"];
+
+  function keypadLayout(){
+    const keys = [
+      ["1",""], ["2","ABC"], ["3","DEF"],
+      ["4","GHI"], ["5","JKL"], ["6","MNO"],
+      ["7","PQRS"], ["8","TUV"], ["9","WXYZ"],
+      ["*",""], ["0","+"], ["#",""]
+    ];
+    keypad.innerHTML = "";
+    keys.forEach(([main,sub])=>{
+      const el = document.createElement('div');
+      el.className = 'key';
+      el.innerHTML = main + (sub ? `<span class="sub">${sub}</span>` : "");
+      el.addEventListener('click', ()=>{ userInput.value += main; });
+      keypad.appendChild(el);
+    });
+  }
+  keypadLayout();
+
+  // ---- USSD session engine — runs entirely offline in the browser ----
+  // Given the full input chain (e.g. ["1","SR1042"]), returns { text, end }
+  function runMenu(history){
+    if(history.length === 0){
+      return {
+        text: "SARTHI\n1. Check shipment status\n2. Register as driver\n3. Report vehicle breakdown\n4. Nearest transport hub\n0. Exit",
+        end: false
+      };
+    }
+    const root = history[0];
+
+    if(root === "0"){
+      return { text: "Thank you for using SARTHI. Session ended.", end: true };
+    }
+
+    if(root === "1"){
+      if(history.length === 1){
+        return { text: "Enter shipment ID (e.g. SR1042):", end: false };
+      }
+      const id = history[1].toUpperCase();
+      const status = SHIPMENTS[id] || "No record found for that shipment ID.";
+      return { text: `Shipment ${id}:\n${status}`, end: true };
+    }
+
+    if(root === "2"){
+      if(history.length === 1){
+        return { text: "Driver registration\nEnter your full name:", end: false };
+      }
+      if(history.length === 2){
+        return { text: "Vehicle type?\n1. Truck\n2. Pickup\n3. Two-wheeler", end: false };
+      }
+      const types = {"1":"Truck","2":"Pickup","3":"Two-wheeler"};
+      const vt = types[history[2]] || "Unspecified";
+      return { text: `Registered ${history[1]} as a ${vt} driver.\nYou'll be contacted for verification.`, end: true };
+    }
+
+    if(root === "3"){
+      if(history.length === 1){
+        return { text: "Report breakdown\nEnter your current location:", end: false };
+      }
+      return { text: `Breakdown reported near ${history[1]}.\nNearest support team notified.`, end: true };
+    }
+
+    if(root === "4"){
+      const list = HUBS.map((h,i)=>`${i+1}. ${h}`).join("\n");
+      return { text: `Nearest transport hubs:\n${list}`, end: true };
+    }
+
+    return { text: "Invalid option. Session ended.", end: true };
+  }
+
+  function startSession(){
+    sessionActive = true;
+    sessionId = "SESS-" + Math.floor(Math.random()*90000+10000);
+    inputHistory = [];
+    sessionLabel.textContent = sessionId;
+    const { text } = runMenu(inputHistory);
+    screenText.textContent = text;
+    userInput.value = "";
+    userInput.placeholder = "Enter option";
+  }
+
+  function endSession(finalText){
+    sessionActive = false;
+    sessionLabel.textContent = "SESSION IDLE";
+    screenText.textContent = finalText;
+    userInput.value = "";
+    userInput.placeholder = "*123#";
+  }
+
+  document.getElementById('sendBtn').addEventListener('click', ()=>{
+    const val = userInput.value.trim();
+    if(!sessionActive){
+      if(val.replace(/#/g,"") === "*123"){
+        startSession();
+      } else {
+        screenText.textContent = "Unknown code. Try *123#";
+        userInput.value = "";
+      }
+      return;
+    }
+    if(val === ""){ return; }
+    inputHistory.push(val);
+    const { text, end } = runMenu(inputHistory);
+    if(end){
+      endSession(text);
+    } else {
+      screenText.textContent = text;
+      userInput.value = "";
+    }
+  });
+
+  document.getElementById('endBtn').addEventListener('click', ()=>{
+    endSession("Session ended by user.");
+  });
+
+  userInput.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){ document.getElementById('sendBtn').click(); }
+  });
+})();
+</script>
+</body>
+</html>
